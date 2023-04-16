@@ -23,6 +23,7 @@
 namespace report_zabbix\indicators;
 
 use coding_exception;
+use moodle_exception;
 
 abstract class zabbix_indicator {
 
@@ -172,7 +173,7 @@ abstract class zabbix_indicator {
             if (!empty($this->submode)) {
                 $cmd1 .= '.'.$submode;
             }
-            if ($this->datatype == 'numeric') {
+            if ($this->datatype == 'numeric' && is_numeric($this->value->$submode)) {
                 $cmd1 .= ' -o '.$this->value->$submode;
             } else {
                 $cmd1 .= ' -o '.escapeshellarg($this->value->$submode);

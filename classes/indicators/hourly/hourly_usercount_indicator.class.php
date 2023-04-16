@@ -88,7 +88,7 @@ class hourly_usercount_indicator extends zabbix_indicator {
                         u.lastaccess > ?
                 ";
 
-                $activityhorizon = time() - MINSECS * 3;
+                $activityhorizon = time() - MINSECS * 60;
                 $this->value->$submode = $DB->count_records_sql($sql, [$activityhorizon]);
                 
                 break;

@@ -60,7 +60,8 @@ class standard_rolepolicy extends rolepolicy_base {
         $sql = "
             SELECT
                 r.archetype,
-                COUNT(ra.id) as ras
+                COUNT(ra.id) as ras,
+                ra.userid
             FROM
                 {role} r
             LEFT JOIN
@@ -79,27 +80,30 @@ class standard_rolepolicy extends rolepolicy_base {
                 if (array_key_exists('manager', $ras) && $ras['manager']->ras > 0) {
                     return true;
                 }
+                break;
             }
 
             case 'teacher': {
                 if (array_key_exists('manager', $ras) && $ras['manager']->ras > 0) {
                     return false;
                 }
-                if (array_key_exists('teacher', $ras) && $ras['teacher']->ras > 0) {
+                if ((array_key_exists('teacher', $ras) && $ras['teacher']->ras > 0) || (array_key_exists('editingteacher', $ras) && $ras['editingteacher']->ras > 0)) {
                     return true;
                 }
+                break;
             }
 
             case 'student': {
                 if (array_key_exists('manager', $ras) && $ras['manager']->ras > 0) {
                     return false;
                 }
-                if (array_key_exists('teacher', $ras) && $ras['teacher']->ras > 0) {
+                if ((array_key_exists('teacher', $ras) && $ras['teacher']->ras > 0) || (array_key_exists('editingteacher', $ras) && $ras['editingteacher']->ras > 0)) {
                     return false;
                 }
                 if (array_key_exists('student', $ras) && $ras['student']->ras > 0) {
                     return true;
                 }
+                break;
             }
         }
 

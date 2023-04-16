@@ -81,7 +81,7 @@ class daily_forum_indicator extends zabbix_indicator {
             case 'dailyposts': {
                 $activityhorizon = time() - DAYSECS;
                 $queries = $DB->count_records_select('forum_posts', "created > ?", [$activityhorizon]);
-                $this->value->$submode = $queries / 60;
+                $this->value->$submode = $queries;
                 break;
             }
 

@@ -38,3 +38,19 @@ function report_zabbix_register_plugin($type, $name) {
     }
 
 }
+
+/**
+ * Passes the direct measurement sending to the "Pro" zone.
+ * Sends a value from plugin's code directly.
+ * @param $key the zabbix key
+ * @param $value the value to send
+ */
+function report_zabbix_send($key, $value) {
+    global $CFG;
+
+    if (report_zabbix_supports_feature('extension/directsend')) {
+        include_once($CFG->dirroot.'/report/zabbix/pro/lib.php');
+        return __report_zabbix_send($key, $value);
+    }
+
+}

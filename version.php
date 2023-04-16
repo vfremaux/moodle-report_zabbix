@@ -26,13 +26,13 @@
 
 defined('MOODLE_INTERNAL') || die;
 
-$plugin->version   = 2023011600;        // The current plugin version (Date: YYYYMMDDXX).
+$plugin->version   = 2023040700;        // The current plugin version (Date: YYYYMMDDXX).
 $plugin->requires  = 2020060900;        // Requires this Moodle version.
 $plugin->component = 'report_zabbix'; // Full name of the plugin (used for diagnostics).
-$plugin->release = '3.9.0 (Build 2023011600)';
+$plugin->release = '3.9.0 (Build 2023040700)';
 $plugin->maturity = MATURITY_STABLE;
 $plugin->supported = [39,311];
 
 // Non moodle attributes.
-$plugin->codeincrement = '3.9.0007';
+$plugin->codeincrement = '3.9.0009';
 $plugin->privacy = 'dualrelease';

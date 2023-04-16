@@ -24,6 +24,7 @@ namespace report_zabbix\indicators;
 
 use moodle_exception;
 use coding_exception;
+use context_course;
 use StdClass;
 
 require_once($CFG->dirroot.'/report/zabbix/classes/indicator.class.php');

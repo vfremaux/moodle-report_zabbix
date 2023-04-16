@@ -109,7 +109,7 @@ class daily_quiz_indicator extends zabbix_indicator {
             case 'dailyattempts': {
                 $activityhorizon = time() - DAYSECS;
                 $queries = $DB->count_records_select('quiz_attempts', "timestart > ? AND state = 'finished'", [$activityhorizon]);
-                $this->value->$submode = $queries / 60;
+                $this->value->$submode = $queries;
                 break;
             }
 

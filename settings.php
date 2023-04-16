@@ -38,6 +38,17 @@ if ($hassiteconfig) {
     ];
     $settings->add(new admin_setting_configselect($key, $label, $desc, $default, $protocols));
 
+    $key = 'report_zabbix/zabbixversion';
+    $label = get_string('configzabbixversion', 'report_zabbix');
+    $desc = get_string('configzabbixversion_desc', 'report_zabbix');
+    $default = '6.4';
+    $engineversions = [
+        '6.0' => '< 6.2',
+        '6.2' => '6.2',
+        '6.4' => '6.4',
+    ];
+    $settings->add(new admin_setting_configselect($key, $label, $desc, $default, $engineversions));
+
     $key = 'report_zabbix/zabbixserver';
     $label = get_string('configzabbixserver', 'report_zabbix');
     $desc = get_string('configzabbixserver_desc', 'report_zabbix');
@@ -124,11 +135,15 @@ if ($hassiteconfig) {
     $label = get_string('configzabbixallowedcronperiod', 'report_zabbix');
     $desc = get_string('configzabbixallowedcronperiod_desc', 'report_zabbix');
     $default = 60; // in minutes, defaults to one hour.
-    $settings->add(new admin_setting_configtextarea($key, $label, $desc, $default));
+    $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
 
     $url = new moodle_url('/report/zabbix/register.php');
     $html = get_string('registerinzabbix', 'report_zabbix');
     $settings->add(new admin_setting_heading('register', get_string('register', 'report_zabbix'), $html));
+
+    $label = get_string('zabbixcustommeasurements', 'report_zabbix');
+    $pageurl = new moodle_url('/report/zabbix/measurements.php');
+    $ADMIN->add('reports', new admin_externalpage('customzabbixmeasurements', $label, $pageurl, 'report/zabbix:managecustom'));
 
     if (report_zabbix_supports_feature('emulate/community') == 'pro') {
         include_once($CFG->dirroot.'/report/zabbix/pro/prolib.php');
@@ -140,3 +155,15 @@ if ($hassiteconfig) {
         $settings->add(new admin_setting_heading('plugindisthdr', $label, $desc));
     }
 }
+
+$config = get_config('report_zabbix');
+if (!empty($config->zabbixserver)) {
+    $zabbixurl = ($config->zabbixprotocol == 'HTTP') ? 'http://'.$config->zabbixserver : 'https://'.$config->zabbixserver ;
+    if (!empty($config->zabbixpipath)) {
+        $zabbixurl .= '/'.$config->zabbixpipath;
+    }
+    $key = 'report_zabbix_access';
+    $menuaccess = new admin_externalpage($key, get_string('zabbixserveraccess', 'report_zabbix'), $zabbixurl);
+    $ADMIN->add('reports', $menuaccess);
+}
+

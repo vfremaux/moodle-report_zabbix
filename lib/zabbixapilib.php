@@ -35,6 +35,8 @@ use StdClass;
 // Attaches the host to the MOODLE Zabbix model.
 class api {
 
+    protected $serverversion;
+
     protected $token;
 
     protected $jsonendpoint;
@@ -86,6 +88,7 @@ class api {
         $this->options = $options;
 
         $config = get_config('report_zabbix');
+        $this->serverversion = $config->zabbixversion;
         $this->apiix = 0; // Initiate query sequence to 0.
 
         if (empty($config->zabbixserver)) {
@@ -120,7 +123,11 @@ class api {
         }
 
         $params = new StdClass;
-        $params->user = $config->zabbixadminusername;
+        if ($config->zabbixversion >= 6.2) {
+            $params->username = $config->zabbixadminusername;
+        } else {
+            $params->user = $config->zabbixadminusername;
+        }
         $params->password = $config->zabbixadminpassword;
 
         $json = $this->make_call("user.login", $params, null);
@@ -138,6 +145,11 @@ class api {
         if (!empty($config->zabbixgroups)) {
             $this->init_groups($config->zabbixgroups);
         }
+    }
+
+    public function logout() {
+        $json = $this->make_call("user.logout", [], null);
+        return $json;
     }
 
     public function is_logged_in() {
@@ -276,7 +288,12 @@ class api {
         global $CFG;
 
         $params = new StdClass;
-        $params->search = ['host', 'MOODLE'];
+        if ($this->serverversion >= 6.2) {
+            $params->search = new StdClass;
+            $params->host = 'MOODLE%';
+        } else {
+            $params->search = ['host', 'MOODLE'];
+        }
         $params->searchWildcardsEnabled = true;
         $params->output = ['templateid', 'host', 'name'];
 
@@ -288,20 +305,40 @@ class api {
                 throw new call_exception("Init templates : MOODLE* Models seems NOT be installed in this zabbix\n");
             }
 
+            // there is a strange behaviour of the search response. Securize templates by over filtering them.
             foreach ($ret->result as $template) {
-                if ($template->name != 'MOODLE GROUP') {
-                    // MOODLE GROUPS is a special model for "set of moodle instances".
-
-                    if ($template->name == 'MOODLE SHOP') {
-                        // Do NOT install moodle shop template if moodle shop plugin
-                        // not installed.
-                        if (!is_dir($CFG->dirroot.'/local/shop')) {
-                            continue;
-                        }
-                    }
-
-                    $this->templates[$template->templateid] = $template;
+                if (!preg_match('/^MOODLE/', $template->name)) {
+                    continue;
                 }
+
+                if (preg_match('/^MOODLE GROUP/', $template->name)) {
+                    // MOODLE GROUPs are special model for "set of moodle instances".
+                    continue;
+                }
+
+                if ($template->name == 'MOODLE SHOP') {
+                    // Do NOT install moodle shop template if moodle shop plugin
+                    // not installed.
+                    if (!is_dir($CFG->dirroot.'/local/shop')) {
+                        continue;
+                    }
+                }
+                if ($template->name == 'MOODLE LTC') {
+                    // Do NOT install moodle shop template if moodle shop plugin
+                    // not installed.
+                    if (!is_dir($CFG->dirroot.'/mod/learningtimecheck')) {
+                        continue;
+                    }
+                }
+                if ($template->name == 'MOODLE ENT INSTALLER') {
+                    // Do NOT install moodle shop template if moodle shop plugin
+                    // not installed.
+                    if (!is_dir($CFG->dirroot.'/local/ent_installer')) {
+                        continue;
+                    }
+                }
+
+                $this->templates[$template->templateid] = $template;
             }
 
         } catch (Exception $ex) {
@@ -319,11 +356,20 @@ class api {
         global $CFG;
 
         $groupnames = explode(',', $grouplist);
+        foreach ($groupnames as &$g) {
+            $g = trim($g);
+        }
 
         if (!empty($groupnames)) {
 
             $params = new StdClass;
-            $params->filter = ['name', $groupnames];
+            if ($this->serverversion >= 6.2) {
+                $params->output = 'extend';
+                $params->filter = new StdClass;
+                $params->filter->name = $groupnames;
+            } else {
+                $params->filter = ['name', $groupnames];
+            }
 //            $params->startSearch = true;
             $params->searchByAny = true;
             $params->output = ['groupid', 'name'];
@@ -442,6 +488,7 @@ class api {
 
         $json = $this->make_call('host.create', $params);
         $ret = $this->curl_send($json);
+        $this->logout();
     }
 
     /**
@@ -502,6 +549,7 @@ class api {
 
         // Finally update web scenario variables to adjust the host.
         $this->update_web_scenario($this->me->hostid);
+        $this->logout();
      }
 
     /**

@@ -8,9 +8,9 @@
   <TABLES>
     <TABLE NAME="report_zabbix" COMMENT="Stores site info">
       <FIELDS>
-        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="true" ENUM="false"/>
-        <FIELD NAME="name" TYPE="char" LENGTH="32" NOTNULL="true" SEQUENCE="false" ENUM="false"/>
-        <FIELD NAME="value" TYPE="char" LENGTH="32" NOTNULL="true" SEQUENCE="false" ENUM="false"/>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="true"/>
+        <FIELD NAME="name" TYPE="char" LENGTH="32" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="value" TYPE="char" LENGTH="32" NOTNULL="true" SEQUENCE="false"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id" />
@@ -22,10 +22,10 @@
 
     <TABLE NAME="report_zabbix_courses" COMMENT="Stores course info">
       <FIELDS>
-        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="true" ENUM="false"/>
-        <FIELD NAME="courseid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" ENUM="false"/>
-        <FIELD NAME="name" TYPE="char" LENGTH="32" NOTNULL="true" SEQUENCE="false" ENUM="false"/>
-        <FIELD NAME="value" TYPE="char" LENGTH="32" NOTNULL="true" SEQUENCE="false" ENUM="false"/>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="true"/>
+        <FIELD NAME="courseid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="name" TYPE="char" LENGTH="32" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="value" TYPE="char" LENGTH="32" NOTNULL="true" SEQUENCE="false"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id" />
@@ -35,11 +35,33 @@
       </INDEXES>
     </TABLE>
 
+    <TABLE NAME="report_zabbix_custom" COMMENT="Stores custom measurement definitions">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="true"/>
+        <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="Visible name"/>
+        <FIELD NAME="shortname" TYPE="char" LENGTH="40" NOTNULL="true" SEQUENCE="false" COMMENT="Zabbix element key"/>
+        <FIELD NAME="units" TYPE="char" LENGTH="20" NOTNULL="true" SEQUENCE="false" COMMENT="Zabbix element units"/>
+        <FIELD NAME="active" TYPE="int" LENGTH="1" NOTNULL="true" SEQUENCE="false" COMMENT="Switch on/off"/>
+        <FIELD NAME="sqlstatement" TYPE="text" LENGTH="small" NOTNULL="true" SEQUENCE="false" COMMENT="The SQL that produced the measurement"/>
+        <FIELD NAME="context" TYPE="int" LENGTH="4" NOTNULL="true" SEQUENCE="false" COMMENT="Context level" />
+        <FIELD NAME="allow" TYPE="text" LENGTH="small" NOTNULL="true" SEQUENCE="false" COMMENT="List of allowed contexts instances to process"/>
+        <FIELD NAME="deny" TYPE="text" LENGTH="small" NOTNULL="true" SEQUENCE="false" COMMENT="List of allowed contexts instances NOT to process"/>
+        <FIELD NAME="rate" TYPE="int" LENGTH="4" NOTNULL="true" SEQUENCE="false" COMMENT="Capture frequency rate" />
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id" />
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="name_ix" UNIQUE="true" FIELDS="name" />
+        <INDEX NAME="shortname_ix" UNIQUE="true" FIELDS="shortname" />
+      </INDEXES>
+    </TABLE>
+
     <TABLE NAME="report_zabbix_plugins" COMMENT="Stores info about plugins with zabbix emission capacity">
       <FIELDS>
-        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="true" ENUM="false"/>
-        <FIELD NAME="type" TYPE="char" LENGTH="32" NOTNULL="true" SEQUENCE="false" ENUM="false"/>
-        <FIELD NAME="name" TYPE="char" LENGTH="32" NOTNULL="true" SEQUENCE="false" ENUM="false"/>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="true"/>
+        <FIELD NAME="type" TYPE="char" LENGTH="32" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="name" TYPE="char" LENGTH="32" NOTNULL="true" SEQUENCE="false"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id" />

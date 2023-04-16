@@ -24,6 +24,14 @@
  */
 defined('MOODLE_INTERNAL') || die;
 
+define('REPORT_ZABBIX_RATE_INSTANT', 0);
+define('REPORT_ZABBIX_RATE_HOURLY', 1);
+define('REPORT_ZABBIX_RATE_DAILY', 2);
+define('REPORT_ZABBIX_RATE_WEEKLY', 3);
+define('REPORT_ZABBIX_RATE_MONTHLY', 4);
+
+define('CONTEXT_COHORT', 25);
+
 /**
  * Tells wether a feature is supported or not. Gives back the
  * implementation path where to fetch resources.
@@ -40,8 +48,8 @@ function report_zabbix_supports_feature($feature = null, $getsupported = false) 
     if (!isset($supports)) {
         $supports = array(
             'pro' => array(
-                'extension' => array('plugins'),
-                'discovery' => array('topcategories')
+                'extension' => array('plugins', 'directsend'),
+                'discovery' => array('topcategories', 'benchtests', 'coursesofinterest', 'authmethods')
             ),
             'community' => array(
             ),
@@ -204,4 +212,109 @@ function zabbix_untrap_upload() {
         $current->value -= 1;
         $DB->update_record('report_zabbix', $current);
     }
+}
+
+/**
+ * Converts rate code into readable value.
+ * @param int $arate
+ */
+function report_zabbix_rate($arate, $ratestring = false) {
+    switch ($arate) {
+        case REPORT_ZABBIX_RATE_INSTANT: {
+            if ($ratestring) {
+                return 'instant';
+            } else {
+                return get_string('instant_task', 'report_zabbix');
+            }
+        }
+        case REPORT_ZABBIX_RATE_HOURLY: {
+            if ($ratestring) {
+                return 'hourly';
+            } else {
+                return get_string('hourly_task', 'report_zabbix');
+            }
+        }
+        case REPORT_ZABBIX_RATE_DAILY: {
+            if ($ratestring) {
+                return 'daily';
+            } else {
+                return get_string('daily_task', 'report_zabbix');
+            }
+        }
+        case REPORT_ZABBIX_RATE_WEEKLY: {
+            if ($ratestring) {
+                return 'weekly';
+            } else {
+                return get_string('weekly_task', 'report_zabbix');
+            }
+        }
+        case REPORT_ZABBIX_RATE_MONTHLY: {
+            if ($ratestring) {
+                return 'monthly';
+            } else {
+                return get_string('monthly_task', 'report_zabbix');
+            }
+        }
+        default:
+            throw new coding_exception("This is a coding error. Rate should always be in expected values");
+    }
+}
+
+/**
+ * all available rates.
+ * @param int $arate
+ */
+function report_zabbix_rates() {
+
+    $rates = [];
+    $rates[REPORT_ZABBIX_RATE_INSTANT] = get_string('instant_task', 'report_zabbix');
+    $rates[REPORT_ZABBIX_RATE_HOURLY] = get_string('hourly_task', 'report_zabbix');
+    $rates[REPORT_ZABBIX_RATE_DAILY] = get_string('daily_task', 'report_zabbix');
+    $rates[REPORT_ZABBIX_RATE_WEEKLY] = get_string('weekly_task', 'report_zabbix');
+    $rates[REPORT_ZABBIX_RATE_MONTHLY] = get_string('monthly_task', 'report_zabbix');
+
+    return $rates;
+}
+
+/**
+ * Converts context code into readable value.
+ * @param int $acontext
+ */
+function report_zabbix_context($acontext) {
+    switch ($acontext) {
+        case CONTEXT_SYSTEM: {
+            return get_string('contextsystem', 'report_zabbix');
+        }
+        case CONTEXT_COURSECAT: {
+            return get_string('contextcoursecategory', 'report_zabbix');
+        }
+        case CONTEXT_COURSE: {
+            return get_string('contextcourse', 'report_zabbix');
+        }
+        case CONTEXT_MODULE: {
+            return get_string('contextcoursemodule', 'report_zabbix');
+        }
+        case CONTEXT_USER: {
+            return get_string('contextuser', 'report_zabbix');
+        }
+        case CONTEXT_COHORT: {
+            return get_string('contextcohort', 'report_zabbix');
+        }
+        default:
+            throw new coding_exception("This is a coding error. Context should always be in expected values");
+    }
+}
+
+function report_zabbix_contexts() {
+
+       $contexts = [];
+
+        $contexts[CONTEXT_SYSTEM] = get_string('contextsystem', 'report_zabbix');
+        $contexts[CONTEXT_COURSECAT] = get_string('contextcoursecat', 'report_zabbix');
+        $contexts[CONTEXT_COURSE] = get_string('contextcourse', 'report_zabbix');
+        $contexts[CONTEXT_MODULE] = get_string('contextmodule', 'report_zabbix');
+        $contexts[CONTEXT_USER] = get_string('contextuser', 'report_zabbix');
+        $contexts[CONTEXT_COHORT] = get_string('contextcohort', 'report_zabbix');
+
+        return $contexts;
 }

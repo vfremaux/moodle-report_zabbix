@@ -69,5 +69,36 @@ function xmldb_report_zabbix_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2022060700, 'report', 'zabbix');
     }
 
+    if ($oldversion < 2023040700) {
+        // Define table report_zabbix_custom to be created.
+        $table = new xmldb_table('report_zabbix_custom');
+
+        // Adding fields to table report_zabbix_custom.
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('name', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('shortname', XMLDB_TYPE_CHAR, '40', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('active', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('sqlstatement', XMLDB_TYPE_TEXT, null, null, XMLDB_NOTNULL, null, null);
+        $table->add_field('context', XMLDB_TYPE_INTEGER, '4', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('allow', XMLDB_TYPE_TEXT, null, null, XMLDB_NOTNULL, null, null);
+        $table->add_field('deny', XMLDB_TYPE_TEXT, null, null, XMLDB_NOTNULL, null, null);
+        $table->add_field('rate', XMLDB_TYPE_INTEGER, '4', null, XMLDB_NOTNULL, null, null);
+
+        // Adding keys to table report_zabbix_custom.
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+
+        // Adding indexes to table report_zabbix_custom.
+        $table->add_index('name_ix', XMLDB_INDEX_UNIQUE, ['name']);
+        $table->add_index('shortname_ix', XMLDB_INDEX_UNIQUE, ['shortname']);
+        $table->add_index('rate_ix', XMLDB_INDEX_NOT_UNIQUE, ['rate']);
+
+        // Conditionally launch create table for report_zabbix_custom.
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        upgrade_plugin_savepoint(true, 2023040700, 'report', 'zabbix');
+    }
+
     return true;
 }

@@ -23,6 +23,7 @@
 
 // Privacy.
 $string['privacy:metadata'] = "The Zabbix Report does not store any data belonging to users";
+$string['zabbix:managecustom'] = "Can manage custom measurements";
 
 $string['instant_task'] = 'Continuous Zabbix Emission';
 $string['hourly_task'] = 'Hourly Zabbix Emission';
@@ -34,6 +35,8 @@ $string['configzabbixapipath'] = 'Web path to Zabbix API';
 $string['configzabbixapipath_desc'] = 'An absolute path (starting with slash) to append to server name to find the Zabbix web front end (often defaults to /zabbix).';
 $string['configzabbixprotocol'] = 'Zabbix server protocol';
 $string['configzabbixprotocol_desc'] = 'Protocol of zabbix server. Zabbix server should be addressed directly without protocol redirection';
+$string['configzabbixversion'] = 'Zabbix server version';
+$string['configzabbixversion_desc'] = 'Version of zabbix. This may affect how moodle connects to zabbix (fe. for registering).';
 $string['configzabbixserver'] = 'Zabbix server IP or servername';
 $string['configzabbixserver_desc'] = 'Direct IP of zabbix server or proxy. Can use dns names as known by the current environmnet';
 $string['configzabbixhostname'] = 'Moodle registered hostname in zabbix';
@@ -59,6 +62,8 @@ mark to 1 if it check is positive';
 
 $string['configuserrolepolicy'] = 'User policy';
 $string['configuserrolepolicy_desc'] = 'Policy to check user\'s main role in moodle';
+$string['zabbixcustommeasurements'] = 'Custom Zabbix measurements';
+$string['custommeasurements'] = 'Custom measurements';
 $string['entpolicy'] = 'Policy for Academic moodles using user profile fields to tag users.';
 $string['standardpolicy'] = 'Policy based on standard role assignements in moodle.';
 $string['register'] = 'Register in zabbix';
@@ -72,11 +77,40 @@ $string['updated'] = '... Updated';
 $string['notconfigured'] = 'Zabbix server is not or improperly configured.';
 $string['configure'] = 'Configure zabbix server';
 $string['zabbixserversettings'] = 'Zabbix server settings';
+$string['units'] = 'Units';
+$string['units_help'] = 'Units reported in Zabbix element';
 
 $string['pluginname'] = 'Zabbix Sender';
 $string['bypublicip'] = 'By public ip';
 $string['byinternalip'] = 'By internal ip';
 $string['bydns'] = 'By DNS';
+$string['zabbixserveraccess'] = 'Access to Zabbix Server (only for registered accounts)';
+
+$string['addmeasurement'] = 'Add a measurement';
+$string['editcustommeasurement'] = 'Edit a customized measurement';
+$string['name'] = 'Measurement name';
+$string['duplicatenameerror'] = 'This name is already used';
+$string['namerequired'] = 'Name is required';
+$string['shortname'] = 'Measurement key';
+$string['duplicateshortnameerror'] = 'This shortname is already used';
+$string['shortnamerequired'] = 'Zabbic key is required';
+$string['shortname_help'] = 'This shortname will appear as moodle.custom.&lt;shortname&gt; in zabbix if system context (one value), or moodle.custom.&lt;context&gt;.[&lt;id&gt;.&lt;shortname&gt;] if in other contexts.';
+$string['rate'] = 'Capture rate';
+$string['raterequired'] = 'Rate is required in form';
+$string['allow'] = 'Context allowed instances';
+$string['deny'] = 'Context excluded instances';
+$string['customactive'] = 'Active';
+$string['context'] = 'Context';
+$string['context_help'] = 'If context is system, only one value will be sent. If other context, one value per allowed context instance will be sent.';
+$string['sqlstatement'] = 'Sql statement (must provide a single numeric or text result as "meas", for a single context instance if using non system context)';
+$string['contextsystem'] = 'System Context';
+$string['contextcoursecat'] = 'Course Category Context';
+$string['contextcourse'] = 'Course Context';
+$string['contextmodule'] = 'Course Module Context';
+$string['contextuser'] = 'User Context';
+$string['contextcohort'] = 'Cohort Context';
+$string['noselecterror'] = 'The statement is not a select statement. This is formbidden for security reasons.';
+$string['nosqlmeaserror'] = 'There is no "meas" tagged output column in your query.';
 
 $string['notstartedyet'] = 'Not started yet';
 $string['started'] = 'Started';
