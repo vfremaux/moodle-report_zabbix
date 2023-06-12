@@ -105,17 +105,27 @@ class api {
             throw new call_exception("Zabbix server admin username is not set");
         }
 
+        $zabbixserver = $config->zabbixserver;
+        if (!empty($this->options['zabbixserver'])) {
+            $zabbixserver = $this->options['zabbixserver'];
+        }
+
+        $zabbixprotocol = $config->zabbixprotocol;
+        if (!empty($this->options['zabbixprotocol'])) {
+            $zabbixprotocol = $this->options['zabbixprotocol'];
+        }
+
         if (empty($CFG->zabbixusetesttarget)) {
-            $this->jsonendpoint = $config->zabbixprotocol.'://'.$config->zabbixserver.'/api_jsonrpc.php';
             if (!empty($config->zabbixapipath)) {
-                $this->jsonendpoint .= $config->zabbixapipath;
+                $zabbixserver .= $config->zabbixapipath;
             }
+            $this->jsonendpoint = $zabbixprotocol.'://'.$zabbixserver.'/api_jsonrpc.php';
         } else {
             mtrace("Using zabbix test target\n");
-            $this->jsonendpoint = $config->zabbixprotocol.'://'.$config->zabbixserver.'/test_post.php';
             if (!empty($config->zabbixapipath)) {
-                $this->jsonendpoint .= $config->zabbixapipath;
+                $zabbixserver .= $config->zabbixapipath;
             }
+            $this->jsonendpoint = $zabbixprotocol.'://'.$zabbixserver.'/test_post.php';
         }
 
         if ($CFG->debug == DEBUG_DEVELOPER) {
@@ -243,6 +253,8 @@ class api {
                     curl_setopt($ch, CURLOPT_PROXYAUTH, CURLAUTH_BASIC | CURLAUTH_NTLM);
                 }
             }
+        } else {
+            curl_setopt($ch, CURLOPT_PROXY, '');
         }
 
         $res = curl_exec($ch);
@@ -250,8 +262,9 @@ class api {
         // Check for curl errors.
         $info =  curl_getinfo($ch);
         $curlerrno = curl_errno($ch);
+        $curlerror = curl_error($ch);
         if ($curlerrno != 0) {
-            throw new query_exception("Request for {$this->jsonendpoint} failed with curl error $curlerrno (using proxy: $usingproxy)\n".print_r($info, true));
+            throw new query_exception("Request for {$this->jsonendpoint} failed with curl error $curlerrno (using proxy: $usingproxy)\n{$curlerror}\n".print_r($info, true));
         }
 
         // check HTTP error code
@@ -414,9 +427,13 @@ class api {
     public function check_host_exists() {
         global $CFG;
 
-        $hostname = $CFG->wwwroot;
-        $hostroot = preg_replace('#https?://#', '', $CFG->wwwroot);
-        $dnsname = preg_replace('#/.*#', '', $hostroot);
+        if (empty($this->options['hostname'])) {
+            $hostname = $CFG->wwwroot;
+            $hostroot = preg_replace('#https?://#', '', $CFG->wwwroot);
+            $dnsname = preg_replace('#/.*#', '', $hostroot);
+        } else {
+            $dnsname = $this->options['hostname'];
+        }
 
         $params = new StdClass;
         // $params->search = ['host', [$dnsname]];
@@ -450,9 +467,15 @@ class api {
     public function create_me() {
         global $SITE, $CFG;
 
-        $hostname = $CFG->wwwroot;
-        $hostroot = preg_replace('#https?://#', '', $CFG->wwwroot);
-        $dnsname = preg_replace('#/.*#', '', $hostroot);
+        if (empty($this->options['hostname'])) {
+            $hostname = $CFG->wwwroot;
+            $hostroot = preg_replace('#https?://#', '', $CFG->wwwroot);
+            $dnsname = preg_replace('#/.*#', '', $hostroot);
+        } else {
+            $dnsname = $this->options['hostname'];
+            $hostroot = $dnsname;
+            $hostname = $dnsname;
+        }
 
         if (strlen($hostroot) > 64) {
             throw new call_exception("Create me : hostid cannot exceed 64 chars in zabbix");
@@ -497,9 +520,15 @@ class api {
      public function update_me() {
         global $SITE, $CFG;
 
-        $hostname = $CFG->wwwroot;
-        $hostroot = preg_replace('#https?://#', '', $CFG->wwwroot);
-        $dnsname = preg_replace('#/.*#', '', $hostroot);
+        if (empty($this->options['hostname'])) {
+            $hostname = $CFG->wwwroot;
+            $hostroot = preg_replace('#https?://#', '', $CFG->wwwroot);
+            $dnsname = preg_replace('#/.*#', '', $hostroot);
+        } else {
+            $dnsname = $this->options['hostname'];
+            $hostroot = $dnsname;
+            $hostname = $dnsname;
+        }
 
         $params = new StdClass;
         $myhost = new StdClass;

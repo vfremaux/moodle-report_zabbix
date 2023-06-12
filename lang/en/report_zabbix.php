@@ -38,7 +38,7 @@ $string['configzabbixprotocol_desc'] = 'Protocol of zabbix server. Zabbix server
 $string['configzabbixversion'] = 'Zabbix server version';
 $string['configzabbixversion_desc'] = 'Version of zabbix. This may affect how moodle connects to zabbix (fe. for registering).';
 $string['configzabbixserver'] = 'Zabbix server IP or servername';
-$string['configzabbixserver_desc'] = 'Direct IP of zabbix server or proxy. Can use dns names as known by the current environmnet';
+$string['configzabbixserver_desc'] = 'Direct IP of zabbix server or proxy. Can use dns names as known by the current environment';
 $string['configzabbixhostname'] = 'Moodle registered hostname in zabbix';
 $string['configzabbixhostname_desc'] = 'Host name associated to the MOODLE application template. Will default to local WWWROOT.';
 $string['configzabbixsendercmd'] = 'Commande zabbix_sender';
@@ -67,7 +67,7 @@ $string['custommeasurements'] = 'Custom measurements';
 $string['entpolicy'] = 'Policy for Academic moodles using user profile fields to tag users.';
 $string['standardpolicy'] = 'Policy based on standard role assignements in moodle.';
 $string['register'] = 'Register in zabbix';
-$string['registerinzabbix'] = 'Follow this link to <a href="/report/zabbix/register.php">register this site in Zabbix</a>';
+$string['registerinzabbix'] = 'Follow this link to <a href="'.$CFG->wwwroot.'/report/zabbix/register.php">register this site in Zabbix</a>';
 $string['errornoremotelogin'] = 'Could not login to Zabbix administration.';
 $string['loginok'] = 'Zabbix API Logged in';
 $string['creating'] = 'Host {$a} new in Zabbix. Creating... ';

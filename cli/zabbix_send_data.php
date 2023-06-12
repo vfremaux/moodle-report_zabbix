@@ -40,12 +40,14 @@ list($options, $unrecognized) = cli_get_params(array(
     'rate' => false,
     'host' => false,
     'help' => false,
+    'zabbixserver' => false,
     'debugging' => false,
     ), 
     array(
         'r' => 'rate',
         'h' => 'help',
         'H' => 'host',
+        'z' => 'zabbixsever',
         'd' => 'debugging'
     )
 );
@@ -64,6 +66,7 @@ Options:
     --host=URL                  Host to proceeed for.
     -r, --rate                  The sender rate to activate : instant,hourly,daily,weekly,monthly
     -h, --help                  Print out this help.
+    -z, --zabbixserver          Overrides zabbix server.
     -d, --debugging             Enables debug option.
 
 Example:
@@ -113,6 +116,12 @@ if (!$admin) {
 
 $hostname = preg_replace('#https?://#', '', $CFG->wwwroot);
 
+$config = get_config('report_zabbix');
+if (!empty($config->zabbixhostname)) {
+    $hostname = $config->zabbixhostname;
+    $options['hostname'] = $hostname;
+}
+
 // Execution.
 if (empty($options['rate'])) {
     mtrace("Empty rate.\n");
@@ -129,6 +138,10 @@ if (!in_array($rate, ['instant', 'hourly', 'daily', 'weekly', 'monthly'])) {
 include_once($CFG->dirroot.'/report/zabbix/classes/task/'.$rate.'_task.php');
 $taskclass = 'report_zabbix\\task\\'.$rate.'_task';
 $task = new $taskclass();
+
+if (!empty($options['zabbixserver'])) {
+    set_config('zabbixserver', $options['zabbixserver'], 'report_zabbix');
+}
 
 if (!empty($options['debugging'])) {
     $task->set_verbose(true);

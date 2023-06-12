@@ -86,6 +86,13 @@ class hourly_storage_indicator extends zabbix_indicator {
             $submode = $this->submode;
         }
 
+        $divider = 1024;
+        if (report_zabbix_supports_feature('units/sizedivider')) {
+            include_once($CFG->dirroot.'/report/zabbix/pro/localprolib.php');
+            $promanager = new \report_zabbix\local_pro_manager();
+            $divider = $promanager->get_size_divider();
+        }
+
         switch ($submode) {
             case '<areatype>areassize': {
                 /*
@@ -99,10 +106,12 @@ class hourly_storage_indicator extends zabbix_indicator {
                         SUM(CASE WHEN filearea != ? THEN filesize ELSE 0 END) as storedareassize
                     FROM
                         {files}
+                    WHERE
+                        filesize != 0
                 ";
                 $areasizes = $DB->get_record_sql($sql, ['draft', 'draft']);
                 foreach ($areatypes as $atype) {
-                    $this->value->$atype = $areasizes->$atype;
+                    $this->value->$atype = sprintf("%.2f", $areasizes->$atype / $divider);
                 }
                 break;
             }
@@ -111,7 +120,7 @@ class hourly_storage_indicator extends zabbix_indicator {
                 $sqllike = $DB->sql_like('mimetype', ':mime');
                 $params = ['filearea' => 'draft', 'mime' => 'application%'];
                 $size = $DB->get_field_select('files', 'SUM(filesize)', 'filearea != :filearea AND filesize != 0 AND '.$sqllike, $params);
-                $this->value->$submode = $size;
+                $this->value->$submode = sprintf("%.2f", $size / $divider);
                 break;
             }
 
@@ -119,7 +128,7 @@ class hourly_storage_indicator extends zabbix_indicator {
                 $sqllike = $DB->sql_like('mimetype', ':mime');
                 $params = ['filearea' => 'draft', 'mime' => 'video%'];
                 $size = $DB->get_field_select('files', 'SUM(filesize)', 'filearea != :filearea AND filesize != 0 AND '.$sqllike, $params);
-                $this->value->$submode = $size;
+                $this->value->$submode = sprintf("%.2f", $size / $divider);
                 break;
             }
 
@@ -128,7 +137,7 @@ class hourly_storage_indicator extends zabbix_indicator {
                 $size = $DB->get_field_select('files', 'SUM(filesize)', 'component = :component AND filesize != 0 ', $params);
                 $params = ['component' => 'user', 'filearea' => 'backup'];
                 $usersize = $DB->get_field_select('files', 'SUM(filesize)', 'component = :component AND filearea = :filearea AND filesize != 0 ', $params);
-                $this->value->$submode = $size + $usersize;
+                $this->value->$submode = sprintf("%.2f", $size + $usersize / $divider);
                 break;
             }
 
@@ -136,7 +145,7 @@ class hourly_storage_indicator extends zabbix_indicator {
                 $sqllike = $DB->sql_like('mimetype', ':mime');
                 $params = ['component' => 'user', 'filearea' => 'backup'];
                 $usersize = $DB->get_field_select('files', 'SUM(filesize)', 'component = :component AND filearea = :filearea AND filesize != 0 ', $params);
-                $this->value->$submode = $usersize;
+                $this->value->$submode = sprintf("%.2f", $usersize / $divider);
                 break;
             }
 
@@ -144,7 +153,7 @@ class hourly_storage_indicator extends zabbix_indicator {
                 $sqllike = $DB->sql_like('mimetype', ':mime');
                 $params = ['component' => 'backup', 'filearea' => 'activity'];
                 $size = $DB->get_field_select('files', 'SUM(filesize)', 'component = :component AND filearea = :filearea AND filesize != 0 ', $params);
-                $this->value->$submode = $size;
+                $this->value->$submode = sprintf("%.2f", $size / $divider);
                 break;
             }
 
@@ -152,7 +161,7 @@ class hourly_storage_indicator extends zabbix_indicator {
                 $sqllike = $DB->sql_like('mimetype', ':mime');
                 $params = ['component' => 'backup', 'filearea' => 'course'];
                 $size = $DB->get_field_select('files', 'SUM(filesize)', 'component = :component AND filearea = :filearea AND filesize != 0 ', $params);
-                $this->value->$submode = $size;
+                $this->value->$submode = sprintf("%.2f", $size / $divider);
                 break;
             }
 
@@ -160,7 +169,7 @@ class hourly_storage_indicator extends zabbix_indicator {
                 $sqllike = $DB->sql_like('mimetype', ':mime');
                 $params = ['component' => 'backup', 'filearea' => 'automated'];
                 $size = $DB->get_field_select('files', 'SUM(filesize)', 'component = :component AND filearea = :filearea AND filesize != 0 ', $params);
-                $this->value->$submode = $size;
+                $this->value->$submode = sprintf("%.2f", $size / $divider);
                 break;
             }
 
@@ -186,8 +195,8 @@ class hourly_storage_indicator extends zabbix_indicator {
                     FROM
                         {logstore_standard_log}
                 ";
-                $db = $DB->count_records_sql($sql, []);
-                $this->value->$submode = 0 + $db->logsize;
+                $dbsize = $DB->count_records_sql($sql, []);
+                $this->value->$submode = 0 + $dbsize;
                 break;
             }
 

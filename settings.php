@@ -102,7 +102,7 @@ if ($hassiteconfig) {
     $label = get_string('configzabbixgroups', 'report_zabbix');
     $desc = get_string('configzabbixgroups_desc', 'report_zabbix');
     $default = '';
-    $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
+    $settings->add(new admin_setting_configtext($key, $label, $desc, $default, PARAM_TEXT, 120));
 
     $key = 'report_zabbix/interfacedef';
     $label = get_string('configzabbixinterfacedef', 'report_zabbix');

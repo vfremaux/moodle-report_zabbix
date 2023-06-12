@@ -67,7 +67,7 @@ $string['zabbixcustommeasurements'] = 'Mesures Zabbix customisées';
 $string['entpolicy'] = 'Résolution pour les moodle inclus dans les ENT (basé sur champs de profil).';
 $string['standardpolicy'] = 'Résolution basée sur les assignations de rôle standard de moodle.';
 $string['register'] = 'Enregistrer le site';
-$string['registerinzabbix'] = 'Suivez ce lien pour <a href="/report/zabbix/register.php">enregistrer ce site dans Zabbix</a>';
+$string['registerinzabbix'] = 'Suivez ce lien pour <a href="'.$CFG->wwwroot.'/report/zabbix/register.php">enregistrer ce site dans Zabbix</a>';
 $string['errornoremotelogin'] = 'Moodle n\'a pas pu se connecter à l\'administration de Zabbix.';
 $string['loginok'] = 'API connecté à Zabbix';
 $string['creating'] = 'L\'hôte {$a} est nouveau dans Zabbix. Création... ';

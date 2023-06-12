@@ -38,12 +38,15 @@ $PAGE->set_heading(get_string('register', 'report_zabbix'));
 
 echo $OUTPUT->header();
 
+$config = get_config('report_zabbix');
+
 if ($register) {
     $options = [];
     $hostname = preg_replace('#https?://#', '', $CFG->wwwroot);
     if (!empty($config->zabbixhostname)) {
         $hostname = $config->zabbixhostname;
     }
+    $options['hostname'] = $hostname;
     $api = \report_zabbix\api::instance($options);
 
     if (!$api->is_logged_in()) {
@@ -71,8 +74,6 @@ if ($register) {
         }
     }
 }
-
-$config = get_config('report_zabbix');
 
 if (!empty($config->zabbixserver)) {
     $table = new html_table();

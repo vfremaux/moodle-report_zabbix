@@ -30,7 +30,9 @@ define('REPORT_ZABBIX_RATE_DAILY', 2);
 define('REPORT_ZABBIX_RATE_WEEKLY', 3);
 define('REPORT_ZABBIX_RATE_MONTHLY', 4);
 
-define('CONTEXT_COHORT', 25);
+if (!defined('CONTEXT_COHORT')) {
+    define('CONTEXT_COHORT', 25);
+}
 
 /**
  * Tells wether a feature is supported or not. Gives back the
@@ -49,7 +51,8 @@ function report_zabbix_supports_feature($feature = null, $getsupported = false) 
         $supports = array(
             'pro' => array(
                 'extension' => array('plugins', 'directsend'),
-                'discovery' => array('topcategories', 'benchtests', 'coursesofinterest', 'authmethods')
+                'discovery' => array('topcategories', 'benchtests', 'coursesofinterest', 'authmethods'),
+                'units' => array('sizedivider'),
             ),
             'community' => array(
             ),
@@ -131,7 +134,13 @@ function report_zabbix_load_indicators($freq = null) {
 
     if (report_zabbix_supports_feature('extension/plugins')) {
         include_once($CFG->dirroot.'/report/zabbix/pro/lib.php');
+        if ($CFG->debug == DEBUG_DEVELOPER || defined('CLI_SCRIPT')) {
+            echo("Scanning plugin indicators... ");
+        }
         report_zabbix_load_indicator_extensions($indicators, $freq);
+        if ($CFG->debug == DEBUG_DEVELOPER || defined('CLI_SCRIPT')) {
+            echo("...done\n");
+        }
     }
 
     $objects = [];
@@ -143,7 +152,7 @@ function report_zabbix_load_indicators($freq = null) {
             }
             include_once($indicatorpath);
             $classname = '\\report_zabbix\\indicators\\'.basename($indicatorpath, '.class.php');
-            $objects[] = new $classname();
+            $objects[$classname] = new $classname();
         }
     }
 

@@ -90,7 +90,7 @@ function xmldb_report_zabbix_upgrade($oldversion) {
         // Adding indexes to table report_zabbix_custom.
         $table->add_index('name_ix', XMLDB_INDEX_UNIQUE, ['name']);
         $table->add_index('shortname_ix', XMLDB_INDEX_UNIQUE, ['shortname']);
-        $table->add_index('rate_ix', XMLDB_INDEX_NOT_UNIQUE, ['rate']);
+        $table->add_index('rate_ix', XMLDB_INDEX_NOTUNIQUE, ['rate']);
 
         // Conditionally launch create table for report_zabbix_custom.
         if (!$dbman->table_exists($table)) {

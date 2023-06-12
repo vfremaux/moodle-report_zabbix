@@ -30,7 +30,13 @@ require_once($CFG->dirroot.'/report/zabbix/classes/indicator.class.php');
 
 class daily_courses_indicator extends zabbix_indicator {
 
-    static $submodes = '<courseid>requests,<courseid>distinctusers,<courseid>enrolled,<courseid>completed';
+    static $submodes = '<courseid>requests,<courseid>distinctusers,<courseid>enrolled,<courseid>completed,<courseid>modules,<courseid>engagement,<courseid>engagementdensity,<courseid>fileload';
+
+    // A static store to avoid repeating query.
+    static $coursemodules;
+
+    // A static store to avoid repeating query.
+    static $courseenroled;
 
     public function __construct() {
         parent::__construct();
@@ -48,6 +54,12 @@ class daily_courses_indicator extends zabbix_indicator {
             return [];
         }
 
+        $config = get_config('report_zabbix');
+        if (empty($config->discovercourses)) {
+            return [];
+        }
+
+        include_once($CFG->dirroot.'/report/zabbix/pro/localprolib.php');
         $localpromanager = new \report_zabbix\local_pro_manager();
         $courses = $localpromanager->get_courses_of_interest();
         if (empty($courses)) {
@@ -183,7 +195,10 @@ class daily_courses_indicator extends zabbix_indicator {
                         c.id
                 ";
 
-                $courseenrolled = $DB->get_records_sql($sql, $inparams);
+                $courseenroled = $DB->get_records_sql($sql, $inparams);
+                if (is_null(self::$courseenroled)) {
+                    self::$courseenroled = $coursenroled;
+                }
 
                 foreach ($coursebuckets as $courseid => $subsubmode) {
                     $this->value->$subsubmode = 0 + @$courseenrolled[$courseid]->enr;
@@ -212,6 +227,109 @@ class daily_courses_indicator extends zabbix_indicator {
 
                 foreach ($coursebuckets as $courseid => $subsubmode) {
                     $this->value->$subsubmode = 0 + @$courseecompletions[$courseid]->comp;
+                }
+                break;
+            }
+
+            case '<courseid>modules' : {
+
+                $coursebuckets = $this->get_sub_submodes('modules');
+
+                $sql = "
+                    SELECT
+                        c.id as courseid,
+                        COUNT(*) as cms
+                    FROM
+                        {course} c,
+                        {course_modules} cm
+                    WHERE
+                        c.id $insql AND
+                        c.id = cm.course
+                    GROUP BY
+                        c.id
+                ";
+
+                $coursemodules = $DB->get_records_sql($sql, $inparams);
+                if (is_null(self::$coursemodules)) {
+                    // Store in static cache for next query.
+                    self::$coursemodules = $coursemodules;
+                }
+
+                foreach ($coursebuckets as $courseid => $subsubmode) {
+                    $this->value->$subsubmode = 0 + @$coursemodules[$courseid]->cms;
+                }
+                break;
+            }
+
+            case '<courseid>proprosedmodules' : {
+
+                // Module must be visible to users, they are proposed even if availability restricted.
+                // First heuristic just considers visibility of CM and belonging section.
+                // This may be false in some cases.... 
+
+                $coursebuckets = $this->get_sub_submodes('modules');
+
+                $sql = "
+                    SELECT
+                        c.id as courseid,
+                        COUNT(*) as cms
+                    FROM
+                        {course} c,
+                        {course_modules} cm,
+                        {course_sections} cs
+                    WHERE
+                        c.id $insql AND
+                        c.id = cm.course
+                        cm.section = cs.section AND
+                        cs.course = c.id AND
+                        cs.visible = 1 AND
+                        cm.visible = 1
+                    GROUP BY
+                        c.id
+                ";
+
+                $coursemodules = $DB->get_records_sql($sql, $inparams);
+                if (is_null(self::$coursemodules)) {
+                    // Store in static cache for next query.
+                    self::$coursemodules = $coursemodules;
+                }
+
+                foreach ($coursebuckets as $courseid => $subsubmode) {
+                    $this->value->$subsubmode = 0 + @$coursemodules[$courseid]->cms;
+                }
+                break;
+            }
+
+            case '<courseid>engagement' : {
+                // Engagement is the mean ratio of the visited modules against available modules per student.
+                // As this may be heavy to calculate, we need to cut off the log to the course start date.
+                // TODO : open the stat to the active logstore
+
+                // We need self::$coursemodules and seld::$courseenroled
+                // Note :: the egangement calculation may be false if modules are spread in groupings for group repartition.
+
+                $coursebuckets = $this->get_sub_submodes('modules');
+
+                $sql = "
+                    SELECT
+                        c.id as courseid,
+                        COUNT(*) as cms
+                    FROM
+                        {course} c,
+                        {course_modules} cm,
+                        {logstore_standard_log} l
+                    WHERE
+                        c.id $insql AND
+                        c.id = cm.course AND
+                        l.timecreated > c.startdate
+                    GROUP BY
+                        c.id
+                ";
+
+                $coursemodules = $DB->get_records_sql($sql, $inparams);
+
+                foreach ($coursebuckets as $courseid => $subsubmode) {
+                    $this->value->$subsubmode = 0 + @$coursemodules[$courseid]->cms;
                 }
                 break;
             }

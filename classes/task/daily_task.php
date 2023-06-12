@@ -61,7 +61,10 @@ class daily_task extends \core\task\scheduled_task {
         $indicators = report_zabbix_load_indicators('daily');
 
         if (!empty($indicators)) {
-            foreach ($indicators as $indicator) {
+            foreach ($indicators as $classname => $indicator) {
+                if ($this->verbose || defined('CLI_SCRIPT')) {
+                    mtrace("Starting $classname.\n");
+                }
                 $indicator->acquire();
                 $indicator->send();
             }

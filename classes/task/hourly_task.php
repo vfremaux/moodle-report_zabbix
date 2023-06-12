@@ -53,11 +53,18 @@ class hourly_task extends \core\task\scheduled_task {
         @raise_memory_limit('512M');
         @set_time_limit(1800);
 
+        if ($this->verbose || defined('CLI_SCRIPT')) {
+            mtrace("Starting hourly send.\n");
+        }
+
         // Load thos indicators that provide daily period measurement explicitely or implicitely.
         $indicators = report_zabbix_load_indicators('hourly');
 
         if (!empty($indicators)) {
-            foreach ($indicators as $indicator) {
+            foreach ($indicators as $classname => $indicator) {
+                if ($this->verbose || defined('CLI_SCRIPT')) {
+                    mtrace("Starting $classname.\n");
+                }
                 $indicator->acquire();
                 $indicator->send();
             }

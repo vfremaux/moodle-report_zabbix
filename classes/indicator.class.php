@@ -128,19 +128,22 @@ abstract class zabbix_indicator {
      * @param string $submode the submode key part of the element name.
      */
     public function send_submode($submode) {
-        global $CFG;
+        global $CFG, $DB;
 
         if (empty($submode)) {
             throw new coding_exception("Submode is empty");
         }
 
-        if (empty(self::$config->zabbixserver)) {
+        $config = get_config('report_zabbix');
+
+        if (empty($config->zabbixserver)) {
             // force it if we have no value.
-            self::$config->zabbixserver = get_config('report_zabbix', 'zabbixserver');
+            // $config->zabbixserver = get_config('report_zabbix', 'zabbixserver');
+            $config->zabbixserver = $DB->get_field('config_plugins', 'value', ['plugin' => 'report_zabbix', 'name' => 'zabbixserver']);
         }
 
         $cmd = self::$config->zabbixsendercmd;
-        $cmd .= ' -z '.self::$config->zabbixserver;
+        $cmd .= ' -z '.escapeshellarg($config->zabbixserver);
         if (empty(self::$config->zabbixhostname)) {
             // Strip out protocol.
             $hostname = preg_replace('#https?:\/\/#', '', $CFG->wwwroot);
