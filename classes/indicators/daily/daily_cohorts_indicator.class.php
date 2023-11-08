@@ -28,14 +28,13 @@ use StdClass;
 
 require_once($CFG->dirroot.'/report/zabbix/classes/indicator.class.php');
 
-class weekly_coursetop_indicator extends zabbix_indicator {
+class daily_cohorts_indicator extends zabbix_indicator {
 
-    static $submodes = 'weeklytop3';
+    static $submodes = 'cohorts,empty,unenroled,system';
 
     public function __construct() {
         parent::__construct();
-        $this->key = 'moodle.courses';
-        $this->datatype = 'text';
+        $this->key = 'moodle.cohort';
     }
 
     /**
@@ -43,6 +42,8 @@ class weekly_coursetop_indicator extends zabbix_indicator {
      * return array of strings
      */
     public function get_submodes() {
+        global $CFG;
+
         return explode(',', self::$submodes);
     }
 
@@ -53,56 +54,70 @@ class weekly_coursetop_indicator extends zabbix_indicator {
     public function acquire_submode($submode) {
         global $DB;
 
-        if (!isset($this->value)) {
-            $this->value = new StdClass;
+        if(!isset($this->value)) {
+            $this->value = new Stdclass;
         }
 
         if (is_null($submode)) {
             $submode = $this->submode;
         }
 
+        $horizon = time() - DAYSECS;
+
+        // We need scan logs for those courses.
         switch ($submode) {
+            case 'cohorts' : {
 
-            case 'weeklytop3': {
-                $sql = "
-                    SELECT DISTINCT
-                        c.id,
-                        c.shortname,
-                        c.fullname,
-                        COUNT(*) as logs
-                    FROM
-                        {logstore_standard_log} l,
-                        {course} c
-                    WHERE
-                        c.id = l.courseid AND
-                        l.timecreated  > ? AND
-                        l.origin = 'web' AND
-                        l.realuserid IS NULL AND
-                        l.courseid > 1
-                    GROUP BY
-                        l.courseid
-                    ORDER BY
-                        logs DESC
-                    LIMIT 0, 3
-                ";
-
-                $activityhorizon = time() - DAYSECS * 7;
-
-                $topcourses = $DB->get_records_sql($sql, [$activityhorizon]);
-                $topcoursesarr = [];
-                foreach ($topcourses as $course) {
-                    $topcoursesarr[] = "{$course->id}-{$course->shortname} {$course->fullname}";
-                }
-                $this->value->$submode = implode(', ', $topcoursesarr);
+                $this->value->$submode = 0 + $DB->count_records('cohort', []);
                 break;
             }
 
-            default: {
-                if ($CFG->debug == DEBUG_DEVELOPER) {
-                    throw new coding_exception("Indicator has a submode that is not handled in aquire_submode().");
-                }
+            case 'empty' : {
+
+                $sql = "
+                    SELECT
+                        COUNT(c.id) as ecc
+                    FROM
+                        {cohort} c
+                    LEFT JOIN
+                        {cohort_members} cm
+                    ON
+                        cm.cohortid = c.id
+                    WHERE
+                        cm.cohortid IS NULL
+                ";
+
+                $result = $DB->get_record_sql($sql, []);
+                $this->value->$submode = 0 + $result->ecc;
+                break;
             }
 
+            case 'unenroled' : {
+
+                $sql = "
+                    SELECT
+                        COUNT(c.id) as uec
+                    FROM
+                        {cohort} c
+                    LEFT JOIN
+                        {enrol} e
+                    ON
+                        e.enrol = 'cohort' AND
+                        e.customint1 = c.id
+                    WHERE
+                        e.customint1 IS NULL
+                ";
+
+                $result = $DB->get_record_sql($sql, []);
+                $this->value->$submode = 0 + $result->uec;
+                break;
+            }
+
+            case 'system' : {
+
+                $this->value->$submode = 0 + @$DB->count_records('cohort', ['contextid' => 1]);
+                break;
+            }
         }
     }
 }

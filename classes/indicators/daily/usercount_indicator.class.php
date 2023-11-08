@@ -30,7 +30,7 @@ require_once($CFG->dirroot.'/report/zabbix/classes/indicator.class.php');
 
 class usercount_indicator extends zabbix_indicator {
 
-    static $submodes = 'registered,alive,students,teachers,staff';
+    static $submodes = 'registered,deleted,suspended,alive,students,teachers,staff';
 
     public function __construct() {
         parent::__construct();
@@ -64,6 +64,18 @@ class usercount_indicator extends zabbix_indicator {
 
             case 'registered': {
                 $params = ['deleted' => 0, 'mnethostid' => $CFG->mnet_localhost_id];
+                $this->value->$submode = $DB->count_records('user', $params);
+                break;
+            }
+
+            case 'suspended': {
+                $params = ['deleted' => 0, 'suspended' => 1, 'mnethostid' => $CFG->mnet_localhost_id];
+                $this->value->$submode = $DB->count_records('user', $params);
+                break;
+            }
+
+            case 'deleted': {
+                $params = ['deleted' => 1, 'mnethostid' => $CFG->mnet_localhost_id];
                 $this->value->$submode = $DB->count_records('user', $params);
                 break;
             }

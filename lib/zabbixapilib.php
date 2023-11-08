@@ -35,6 +35,8 @@ use StdClass;
 // Attaches the host to the MOODLE Zabbix model.
 class api {
 
+    protected $serverversion;
+
     protected $token;
 
     protected $jsonendpoint;
@@ -86,6 +88,7 @@ class api {
         $this->options = $options;
 
         $config = get_config('report_zabbix');
+        $this->serverversion = $config->zabbixversion;
         $this->apiix = 0; // Initiate query sequence to 0.
 
         if (empty($config->zabbixserver)) {
@@ -102,17 +105,27 @@ class api {
             throw new call_exception("Zabbix server admin username is not set");
         }
 
+        $zabbixserver = $config->zabbixserver;
+        if (!empty($this->options['zabbixserver'])) {
+            $zabbixserver = $this->options['zabbixserver'];
+        }
+
+        $zabbixprotocol = $config->zabbixprotocol;
+        if (!empty($this->options['zabbixprotocol'])) {
+            $zabbixprotocol = $this->options['zabbixprotocol'];
+        }
+
         if (empty($CFG->zabbixusetesttarget)) {
-            $this->jsonendpoint = $config->zabbixprotocol.'://'.$config->zabbixserver.'/api_jsonrpc.php';
             if (!empty($config->zabbixapipath)) {
-                $this->jsonendpoint .= $config->zabbixapipath;
+                $zabbixserver .= $config->zabbixapipath;
             }
+            $this->jsonendpoint = $zabbixprotocol.'://'.$zabbixserver.'/api_jsonrpc.php';
         } else {
             mtrace("Using zabbix test target\n");
-            $this->jsonendpoint = $config->zabbixprotocol.'://'.$config->zabbixserver.'/test_post.php';
             if (!empty($config->zabbixapipath)) {
-                $this->jsonendpoint .= $config->zabbixapipath;
+                $zabbixserver .= $config->zabbixapipath;
             }
+            $this->jsonendpoint = $zabbixprotocol.'://'.$zabbixserver.'/test_post.php';
         }
 
         if ($CFG->debug == DEBUG_DEVELOPER) {
@@ -120,7 +133,11 @@ class api {
         }
 
         $params = new StdClass;
-        $params->user = $config->zabbixadminusername;
+        if ($config->zabbixversion >= 6.2) {
+            $params->username = $config->zabbixadminusername;
+        } else {
+            $params->user = $config->zabbixadminusername;
+        }
         $params->password = $config->zabbixadminpassword;
 
         $json = $this->make_call("user.login", $params, null);
@@ -138,6 +155,11 @@ class api {
         if (!empty($config->zabbixgroups)) {
             $this->init_groups($config->zabbixgroups);
         }
+    }
+
+    public function logout() {
+        $json = $this->make_call("user.logout", [], null);
+        return $json;
     }
 
     public function is_logged_in() {
@@ -231,6 +253,8 @@ class api {
                     curl_setopt($ch, CURLOPT_PROXYAUTH, CURLAUTH_BASIC | CURLAUTH_NTLM);
                 }
             }
+        } else {
+            curl_setopt($ch, CURLOPT_PROXY, '');
         }
 
         $res = curl_exec($ch);
@@ -238,8 +262,9 @@ class api {
         // Check for curl errors.
         $info =  curl_getinfo($ch);
         $curlerrno = curl_errno($ch);
+        $curlerror = curl_error($ch);
         if ($curlerrno != 0) {
-            throw new query_exception("Request for {$this->jsonendpoint} failed with curl error $curlerrno (using proxy: $usingproxy)\n".print_r($info, true));
+            throw new query_exception("Request for {$this->jsonendpoint} failed with curl error $curlerrno (using proxy: $usingproxy)\n{$curlerror}\n".print_r($info, true));
         }
 
         // check HTTP error code
@@ -276,7 +301,12 @@ class api {
         global $CFG;
 
         $params = new StdClass;
-        $params->search = ['host', 'MOODLE'];
+        if ($this->serverversion >= 6.2) {
+            $params->search = new StdClass;
+            $params->host = 'MOODLE%';
+        } else {
+            $params->search = ['host', 'MOODLE'];
+        }
         $params->searchWildcardsEnabled = true;
         $params->output = ['templateid', 'host', 'name'];
 
@@ -288,20 +318,40 @@ class api {
                 throw new call_exception("Init templates : MOODLE* Models seems NOT be installed in this zabbix\n");
             }
 
+            // there is a strange behaviour of the search response. Securize templates by over filtering them.
             foreach ($ret->result as $template) {
-                if ($template->name != 'MOODLE GROUP') {
-                    // MOODLE GROUPS is a special model for "set of moodle instances".
-
-                    if ($template->name == 'MOODLE SHOP') {
-                        // Do NOT install moodle shop template if moodle shop plugin
-                        // not installed.
-                        if (!is_dir($CFG->dirroot.'/local/shop')) {
-                            continue;
-                        }
-                    }
-
-                    $this->templates[$template->templateid] = $template;
+                if (!preg_match('/^MOODLE/', $template->name)) {
+                    continue;
                 }
+
+                if (preg_match('/^MOODLE GROUP/', $template->name)) {
+                    // MOODLE GROUPs are special model for "set of moodle instances".
+                    continue;
+                }
+
+                if ($template->name == 'MOODLE SHOP') {
+                    // Do NOT install moodle shop template if moodle shop plugin
+                    // not installed.
+                    if (!is_dir($CFG->dirroot.'/local/shop')) {
+                        continue;
+                    }
+                }
+                if ($template->name == 'MOODLE LTC') {
+                    // Do NOT install moodle shop template if moodle shop plugin
+                    // not installed.
+                    if (!is_dir($CFG->dirroot.'/mod/learningtimecheck')) {
+                        continue;
+                    }
+                }
+                if ($template->name == 'MOODLE ENT INSTALLER') {
+                    // Do NOT install moodle shop template if moodle shop plugin
+                    // not installed.
+                    if (!is_dir($CFG->dirroot.'/local/ent_installer')) {
+                        continue;
+                    }
+                }
+
+                $this->templates[$template->templateid] = $template;
             }
 
         } catch (Exception $ex) {
@@ -319,11 +369,20 @@ class api {
         global $CFG;
 
         $groupnames = explode(',', $grouplist);
+        foreach ($groupnames as &$g) {
+            $g = trim($g);
+        }
 
         if (!empty($groupnames)) {
 
             $params = new StdClass;
-            $params->filter = ['name', $groupnames];
+            if ($this->serverversion >= 6.2) {
+                $params->output = 'extend';
+                $params->filter = new StdClass;
+                $params->filter->name = $groupnames;
+            } else {
+                $params->filter = ['name', $groupnames];
+            }
 //            $params->startSearch = true;
             $params->searchByAny = true;
             $params->output = ['groupid', 'name'];
@@ -368,9 +427,13 @@ class api {
     public function check_host_exists() {
         global $CFG;
 
-        $hostname = $CFG->wwwroot;
-        $hostroot = preg_replace('#https?://#', '', $CFG->wwwroot);
-        $dnsname = preg_replace('#/.*#', '', $hostroot);
+        if (empty($this->options['hostname'])) {
+            $hostname = $CFG->wwwroot;
+            $hostroot = preg_replace('#https?://#', '', $CFG->wwwroot);
+            $dnsname = preg_replace('#/.*#', '', $hostroot);
+        } else {
+            $dnsname = $this->options['hostname'];
+        }
 
         $params = new StdClass;
         // $params->search = ['host', [$dnsname]];
@@ -404,9 +467,15 @@ class api {
     public function create_me() {
         global $SITE, $CFG;
 
-        $hostname = $CFG->wwwroot;
-        $hostroot = preg_replace('#https?://#', '', $CFG->wwwroot);
-        $dnsname = preg_replace('#/.*#', '', $hostroot);
+        if (empty($this->options['hostname'])) {
+            $hostname = $CFG->wwwroot;
+            $hostroot = preg_replace('#https?://#', '', $CFG->wwwroot);
+            $dnsname = preg_replace('#/.*#', '', $hostroot);
+        } else {
+            $dnsname = $this->options['hostname'];
+            $hostroot = $dnsname;
+            $hostname = $dnsname;
+        }
 
         if (strlen($hostroot) > 64) {
             throw new call_exception("Create me : hostid cannot exceed 64 chars in zabbix");
@@ -442,6 +511,7 @@ class api {
 
         $json = $this->make_call('host.create', $params);
         $ret = $this->curl_send($json);
+        $this->logout();
     }
 
     /**
@@ -450,9 +520,15 @@ class api {
      public function update_me() {
         global $SITE, $CFG;
 
-        $hostname = $CFG->wwwroot;
-        $hostroot = preg_replace('#https?://#', '', $CFG->wwwroot);
-        $dnsname = preg_replace('#/.*#', '', $hostroot);
+        if (empty($this->options['hostname'])) {
+            $hostname = $CFG->wwwroot;
+            $hostroot = preg_replace('#https?://#', '', $CFG->wwwroot);
+            $dnsname = preg_replace('#/.*#', '', $hostroot);
+        } else {
+            $dnsname = $this->options['hostname'];
+            $hostroot = $dnsname;
+            $hostname = $dnsname;
+        }
 
         $params = new StdClass;
         $myhost = new StdClass;
@@ -502,6 +578,7 @@ class api {
 
         // Finally update web scenario variables to adjust the host.
         $this->update_web_scenario($this->me->hostid);
+        $this->logout();
      }
 
     /**

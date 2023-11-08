@@ -41,6 +41,8 @@ list($options, $unrecognized) = cli_get_params(
         'with-disabled'     => false,
         'nodes'             => '',
         'lint'              => false,
+        'zabbix-server'      => false,
+        'zabbix-protocol'    => false,
         'verbose'           => false
     ),
     array(
@@ -50,7 +52,9 @@ list($options, $unrecognized) = cli_get_params(
         'D' => 'debugging',
         'f' => 'fullstop',
         'l' => 'lint',
-        'v' => 'verbose'
+        'v' => 'verbose',
+        'S' => 'zabbix-server',
+        'p' => 'zabbix-protocol'
     )
 );
 
@@ -71,6 +75,8 @@ Options:
     -l, --lint            Decodes node file and give a report on nodes to be created.
     -f, --fullstop        Stops on first error.
     -D, --debugging       Turns on debug mode.
+    -S, --zabbix-server   If given, overrides the moodle config.
+    -p, --zabbix-protocol If given, oveerides the moodle config.
     -v, --verbose         Turns verose mode on.
 
 Example:
@@ -99,6 +105,16 @@ if (!empty($options['debugging'])) {
     $debug = ' --debugging ';
 }
 
+$server = '';
+if (!empty($options['zabbix-server'])) {
+    $server = ' --zabbix-server='.$options['zabbix-server'];
+}
+
+$protocol = '';
+if (!empty($options['zabbix-protocol'])) {
+    $protocol = ' --zabbix-protocol='.$options['zabbix-protocol'];
+}
+
 if (!empty($options['lint'])) {
     var_dump($nodes);
     die;
@@ -116,7 +132,7 @@ foreach ($nodes as $n) {
 
     mtrace(get_string('climakenode', 'local_vmoodle', $n->vhostname));
 
-    $workercmd = "php {$CFG->dirroot}/report/zabbix/cli/zabbix_install.php --host=\"{$n->vhostname}\" {$debug} ";
+    $workercmd = "php {$CFG->dirroot}/report/zabbix/cli/zabbix_install.php --host=\"{$n->vhostname}\" {$server} {$protocol} {$debug} ";
 
     mtrace("Executing $workercmd\n######################################################\n");
 

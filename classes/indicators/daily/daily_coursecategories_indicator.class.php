@@ -24,13 +24,14 @@ namespace report_zabbix\indicators;
 
 use moodle_exception;
 use coding_exception;
+use context_coursecat;
 use StdClass;
 
 require_once($CFG->dirroot.'/report/zabbix/classes/indicator.class.php');
 
 class daily_coursecategories_indicator extends zabbix_indicator {
 
-    static $submodes = '<catid>requests,<catid>distinctusers';
+    static $submodes = '<catid>requests,<catid>distinctusers,<catid>enroled,<catid>courses,<catid>storage';
 
     public function __construct() {
         parent::__construct();
@@ -43,6 +44,11 @@ class daily_coursecategories_indicator extends zabbix_indicator {
      */
     public function get_submodes() {
         global $CFG;
+
+        $config = get_config('report_zabbix');
+        if (empty($config->discovercategories)) {
+            return [];
+        }
 
         if (!report_zabbix_supports_feature('discovery/topcategories')) {
             return [];
@@ -64,29 +70,15 @@ class daily_coursecategories_indicator extends zabbix_indicator {
         $localpromanager = new \report_zabbix\local_pro_manager();
         list($topcategories, $categories) = $localpromanager->get_topcategories();
 
-        if ($submodekey == 'requests') {
-            // Implement a variable addition with top category submodes (Zabbix Discovery)
+        // Implement a variable addition with top category submodes (Zabbix Discovery)
 
-            // Element prototype is : moodle.topcategory.[{#CATID}.requests]
-            $subsubmodes = [];
-            foreach ($categories as $cat) {
-                $subsubmodes[$cat->id] = '['.$cat->id.'.requests]';
-            }
-
-            return $subsubmodes;
+        // Element prototype is : moodle.topcategory.[{#CATID}.<subsubmode>]
+        $subsubmodes = [];
+        foreach ($categories as $cat) {
+            $subsubmodes[$cat->id] = '['.$cat->id.'.'.$submodekey.']';
         }
 
-        if ($submodekey == 'distinctusers') {
-            // Implement a variable addition with top category submodes (Zabbix Discovery)
-
-            // Element prototype is : moodle.topcategory.[{#CATID}.distinctusers]
-            $subsubmodes = [];
-            foreach ($categories as $cat) {
-                $subsubmodes[$cat->id] = '['.$cat->id.'.distinctusers]';
-            }
-
-            return $subsubmodes;
-        }
+        return $subsubmodes;
     }
 
     /**
@@ -106,11 +98,11 @@ class daily_coursecategories_indicator extends zabbix_indicator {
 
         $localpromanager = new \report_zabbix\local_pro_manager();
         list($topcategories, $categories) = $localpromanager->get_topcategories();
+        $horizon = time() - DAYSECS;
 
         switch ($submode) {
             case '<catid>requests' : {
 
-                $horizon = time() - DAYSECS;
                 $catbuckets = $this->get_sub_submodes('requests');
 
                 if (is_null($topcategories)) {
@@ -212,6 +204,169 @@ class daily_coursecategories_indicator extends zabbix_indicator {
 
                 foreach ($catbuckets as $catid => $subsubmode) {
                     $this->value->$subsubmode = 0 + @$catusers[$catid]->du;
+                }
+                break;
+            }
+
+            case '<catid>enroled' : {
+
+                $horizon = time() - DAYSECS;
+                $catbuckets = $this->get_sub_submodes('enroled');
+
+                if (is_null($topcategories)) {
+                    $sql = "
+                        SELECT
+                            REGEXP_SUBSTR(cc.path, '[0-9]+') as catid,
+                            COUNT(DISTINCT ue.userid) as du
+                        FROM
+                            {user_enrolments} ue,
+                            {enrol} e,
+                            {course} c,
+                            {course_categories} cc
+                        WHERE
+                            ue.enrolid = e.id AND
+                            ue.status = 0 AND
+                            e.courseid = c.id AND
+                            e.status = 0 AND
+                            c.category = cc.id
+                        GROUP BY
+                            REGEXP_SUBSTR(cc.path, '[0-9]+')
+                    ";
+
+                    $catenroled = $DB->get_records_sql($sql, [$horizon]);
+                } else {
+                    // We need scan for each root cat.
+                    $catenroled = [];
+                    foreach ($topcategories as $topcat) {
+                        $sql = "
+                            SELECT
+                                REGEXP_SUBSTR(REGEXP_REPLACE(cc.path, '^{$topcat->path}/', ''), '[0-9]+') as catid,
+                                COUNT(DISTINCT ue.userid) as du
+                            FROM
+                                {user_enrolments} ue,
+                                {enrol} e,
+                                {course} c,
+                                {course_categories} cc
+                            WHERE
+                                ue.enrolid = e.id AND
+                                ue.status = 0 AND
+                                e.courseid = c.id AND
+                                e.status = 0 AND
+                                c.category = cc.id AND
+                                cc.path LIKE ?
+                            GROUP BY
+                                REGEXP_SUBSTR(REGEXP_REPLACE(cc.path, '^{$topcat->path}/', ''), '[0-9]+')
+                        ";
+
+                        $catenroled = $catenroled + $DB->get_records_sql($sql, [$topcat->path.'/%', $horizon]);
+                    }
+                }
+
+                foreach ($catbuckets as $catid => $subsubmode) {
+                    $this->value->$subsubmode = 0 + @$catenroled[$catid]->du;
+                }
+                break;
+            }
+
+            case '<catid>courses' : {
+
+                $horizon = time() - DAYSECS;
+                $catbuckets = $this->get_sub_submodes('courses');
+
+                if (is_null($topcategories)) {
+                    $sql = "
+                        SELECT
+                            REGEXP_SUBSTR(cc.path, '[0-9]+') as catid,
+                            COUNT(DISTINCT c.id) as courses
+                        FROM
+                            {course} c,
+                            {course_categories} cc
+                        WHERE
+                            c.category = cc.id
+                        GROUP BY
+                            REGEXP_SUBSTR(cc.path, '[0-9]+')
+                    ";
+
+                    $catcourses = $DB->get_records_sql($sql, [$horizon]);
+                } else {
+                    // We need scan for each root cat.
+                    $catcourses = [];
+                    foreach ($topcategories as $topcat) {
+                        $sql = "
+                            SELECT
+                                REGEXP_SUBSTR(REGEXP_REPLACE(cc.path, '^{$topcat->path}/', ''), '[0-9]+') as catid,
+                                COUNT(DISTINCT c.id) as courses
+                            FROM
+                                {course} c,
+                                {course_categories} cc
+                            WHERE
+                                c.category = cc.id AND
+                                cc.path LIKE ?
+                            GROUP BY
+                                REGEXP_SUBSTR(REGEXP_REPLACE(cc.path, '^{$topcat->path}/', ''), '[0-9]+')
+                        ";
+
+                        $catcourses = $catcourses + $DB->get_records_sql($sql, [$topcat->path.'/%', $horizon]);
+                    }
+                }
+
+                foreach ($catbuckets as $catid => $subsubmode) {
+                    $this->value->$subsubmode = 0 + @$catcourses[$catid]->courses;
+                }
+                break;
+            }
+
+            case '<catid>storage' : {
+
+                $catstorages = [];
+                $coursecats = [];
+                $catbuckets = $this->get_sub_submodes('storage');
+                if (is_null($topcategories)) {
+                    $sql = "
+                        SELECT
+                            cc.id,
+                            ctx.path
+                        FROM
+                            {course_categories} cc,
+                            {context} ctx
+                        WHERE
+                            ctx.instanceid = cc.id AND
+                            ctx.contextlevel = ".CONTEXT_COURSECAT."
+                    ";
+                    $coursecats = $DB->get_records_sql($sql);
+                } else {
+                    foreach ($topcategories as $catid => &$cat) {
+                        $cat->path = context_coursecat::instance($catid)->path;
+                    }
+                }
+
+                // We need scan for each cat.
+                $catstorages = [];
+                foreach ($coursecats as $topcat) {
+                    $context = context_coursecat::instance($topcat->id);
+                    $sql = "
+                        SELECT
+                            SUM(filesize) as size
+                        FROM
+                            {files} f,
+                            {context} ctx
+                        WHERE
+                            f.contextid = ctx.id AND
+                            f.filesize > 0 AND
+                            ctx.path LIKE ?
+                    ";
+                    $sizerec = $DB->get_record_sql($sql, [$context->path."/%"]);
+                    if ($sizerec) {
+                        $size = 0 + round($sizerec->size / 1024);
+                    } else {
+                        $size = 0;
+                    }
+
+                    $catstorages[$topcat->id] = $size;
+                }
+
+                foreach ($catbuckets as $catid => $subsubmode) {
+                    $this->value->$subsubmode = 0 + @$catstorages[$catid];
                 }
                 break;
             }

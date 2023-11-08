@@ -30,7 +30,7 @@ require_once($CFG->dirroot.'/report/zabbix/classes/indicator.class.php');
 
 class hourly_version_indicator extends zabbix_indicator {
 
-    static $submodes = 'version,release';
+    static $submodes = 'version,release,upgradespending';
 
     public function __construct() {
         parent::__construct();
@@ -70,6 +70,11 @@ class hourly_version_indicator extends zabbix_indicator {
 
             case 'release': {
                 $this->value->$submode = $DB->get_field('config', 'value', ['name' => 'release']);
+                break;
+            }
+
+            case 'upgradespending': {
+                $this->value->$submode = 0 + moodle_needs_upgrading();
                 break;
             }
 

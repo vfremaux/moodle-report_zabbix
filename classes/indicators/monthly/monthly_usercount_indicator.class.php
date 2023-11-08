@@ -29,7 +29,7 @@ require_once($CFG->dirroot.'/report/zabbix/classes/indicator.class.php');
 
 class monthly_usercount_indicator extends zabbix_indicator {
 
-    static $submodes = 'monthlyalive,monthlylogins,monthlydistinctlogins,monthlydistinctstudentlogins,monthlydistinctteacherlogins,monthlydistinctstafflogins';
+    static $submodes = 'monthlyalive,monthlyactive,monthlyactivestudents,monthlyactiveteachers,monthlylogins,monthlydistinctlogins,monthlydistinctstudentlogins,monthlydistinctteacherlogins,monthlydistinctstafflogins';
 
     public function __construct() {
         parent::__construct();
@@ -69,6 +69,47 @@ class monthly_usercount_indicator extends zabbix_indicator {
 
             case 'monthlyalive': {
                 $this->value->$submode = $DB->count_records('user', ['deleted' => 0, 'suspended' => 0]);
+                break;
+            }
+
+            case 'monthlyactive': {
+                $horizon = time() - DAYSECS * 30;
+                $params = [$horizon];
+                $this->value->$submode = $DB->count_records_select('user', " lastaccess > ? ", $params);
+                break;
+            }
+
+            case 'monthlyactivestudents': {
+                $horizon = time() - DAYSECS * 30;
+                $params = [$horizon];
+                $users = $DB->get_records_select('user', " lastaccess > ? ", $params, '', 'id,username');
+
+                $count = 0;
+                foreach ($users as $user) {
+                    // Ask for student againts the local role policy.
+                    // Policy can be different depending on the implementation or environment.
+                    if (report_zabbix_role_policy($user, 'student')) {
+                        $count++;
+                    }
+                }
+                $this->value->$submode = 0 + $count;
+                break;
+            }
+
+            case 'monthlyactiveteachers': {
+                $horizon = time() - DAYSECS * 30;
+                $params = [$horizon];
+                $users = $DB->get_records_select('user', " lastaccess > ? ", $params, '', 'id,username');
+
+                $count = 0;
+                foreach ($users as $user) {
+                    // Ask for student againts the local role policy.
+                    // Policy can be different depending on the implementation or environment.
+                    if (report_zabbix_role_policy($user, 'teacher')) {
+                        $count++;
+                    }
+                }
+                $this->value->$submode = 0 + $count;
                 break;
             }
 

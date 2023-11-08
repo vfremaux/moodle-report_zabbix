@@ -30,7 +30,7 @@ require_once($CFG->dirroot.'/report/zabbix/classes/indicator.class.php');
 
 class daily_assign_indicator extends zabbix_indicator {
 
-    static $submodes = 'dailysubmissions,activeassigns';
+    static $submodes = 'dailysubmissions,dailylatesubmissions,dailyintimesubmissions,activeassigns';
 
     public function __construct() {
         parent::__construct();
@@ -77,6 +77,43 @@ class daily_assign_indicator extends zabbix_indicator {
                 break;
             }
 
+            case 'dailylatesubmissions': {
+                $sql = "
+                    SELECT
+                        COUNT(*)
+                    FROM
+                        {assign_submission} asu,
+                        {assign} ass
+                    WHERE
+                        asu.assignment = ass.id AND
+                        asu.timecreated > ? AND
+                        ass.duedate > 0 AND
+                        asu.timecreated > ass.duedate AND
+                        asu.status = 'submitted'
+                ";
+                $activityhorizon = time() - DAYSECS;
+                $this->value->$submode = $DB->count_records_sql($sql, [$activityhorizon]);
+                break;
+            }
+
+            case 'dailyintimesubmissions': {
+                $sql = "
+                    SELECT
+                        COUNT(*)
+                    FROM
+                        {assign_submission} asu,
+                        {assign} ass
+                    WHERE
+                        asu.assignment = ass.id AND
+                        asu.timecreated > ? AND
+                        (asu.timecreated <= ass.duedate OR ass.duedate = 0) AND
+                        asu.status = 'submitted'
+                ";
+                $activityhorizon = time() - DAYSECS;
+                $this->value->$submode = $DB->count_records_sql($sql, [$activityhorizon]);
+                break;
+            }
+
             case 'activeassigns': {
 
                 /**
@@ -91,10 +128,6 @@ class daily_assign_indicator extends zabbix_indicator {
                         {modules} m,
                         {course} c,
                         {course_categories} cc1
-                    LEFT JOIN
-                        {course_categories} cc2
-                    ON
-                        cc1.parent = cc2.id
                     WHERE
                         c.visible = 1 AND
                         cm.visible > 0 AND
@@ -107,7 +140,6 @@ class daily_assign_indicator extends zabbix_indicator {
                         c.startdate < ? AND
                         (c.enddate = 0 OR c.enddate > ?) AND
                         cc1.visible = 1 AND
-                        (cc2.id IS NULL OR cc2.visible = 1) AND
                         a.allowsubmissionsfromdate < ? AND
                         (a.duedate = 0 OR a.duedate > ?)
                 ";

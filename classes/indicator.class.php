@@ -23,6 +23,7 @@
 namespace report_zabbix\indicators;
 
 use coding_exception;
+use moodle_exception;
 
 abstract class zabbix_indicator {
 
@@ -127,19 +128,22 @@ abstract class zabbix_indicator {
      * @param string $submode the submode key part of the element name.
      */
     public function send_submode($submode) {
-        global $CFG;
+        global $CFG, $DB;
 
         if (empty($submode)) {
             throw new coding_exception("Submode is empty");
         }
 
-        if (empty(self::$config->zabbixserver)) {
+        $config = get_config('report_zabbix');
+
+        if (empty($config->zabbixserver)) {
             // force it if we have no value.
-            self::$config->zabbixserver = get_config('report_zabbix', 'zabbixserver');
+            // $config->zabbixserver = get_config('report_zabbix', 'zabbixserver');
+            $config->zabbixserver = $DB->get_field('config_plugins', 'value', ['plugin' => 'report_zabbix', 'name' => 'zabbixserver']);
         }
 
         $cmd = self::$config->zabbixsendercmd;
-        $cmd .= ' -z '.self::$config->zabbixserver;
+        $cmd .= ' -z '.escapeshellarg($config->zabbixserver);
         if (empty(self::$config->zabbixhostname)) {
             // Strip out protocol.
             $hostname = preg_replace('#https?:\/\/#', '', $CFG->wwwroot);
@@ -172,7 +176,7 @@ abstract class zabbix_indicator {
             if (!empty($this->submode)) {
                 $cmd1 .= '.'.$submode;
             }
-            if ($this->datatype == 'numeric') {
+            if ($this->datatype == 'numeric' && is_numeric($this->value->$submode)) {
                 $cmd1 .= ' -o '.$this->value->$submode;
             } else {
                 $cmd1 .= ' -o '.escapeshellarg($this->value->$submode);

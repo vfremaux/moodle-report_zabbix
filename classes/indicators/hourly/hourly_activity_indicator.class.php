@@ -30,7 +30,7 @@ require_once($CFG->dirroot.'/report/zabbix/classes/indicator.class.php');
 
 class hourly_activity_indicator extends zabbix_indicator {
 
-    static $submodes = 'cronlateness,hourlyslowpages,hourlyneedsupgrading';
+    static $submodes = 'cronlateness,hourlyslowpages,hourlyneedsupgrading,adhocqueuesize';
 
     public function __construct() {
         parent::__construct();
@@ -80,6 +80,11 @@ class hourly_activity_indicator extends zabbix_indicator {
 
             case 'hourlyneedsupgrading': {
                 $this->value->$submode = (moodle_needs_upgrading()) ? 1 : 0;
+                break;
+            }
+
+            case 'adhocqueuesize': {
+                $this->value->$submode = $DB->count_records('task_adhoc', []);
                 break;
             }
 

@@ -37,9 +37,16 @@ echo "Starting with ".((!empty($CFG->zabbixusetesttarget)) ? 'test' : 'server').
 // Now get cli options.
 list($options, $unrecognized) = cli_get_params(array(
     'host' => false,
+    'zabbix-server' => false,
+    'zabbix-protocol' => false,
     'help' => false,
     'debugging' => false,
-    ), array('h' => 'help', 'H' => 'host', 'd' => 'debugging'));
+    ),
+    array(
+        'h' => 'help',
+        'H' => 'host',
+        'd' => 'debugging')
+    );
 
 if ($unrecognized) {
     $unrecognized = implode("\n  ", $unrecognized);
@@ -53,9 +60,11 @@ This needs the report configuraiton be settled conveniently with a
 valid Zabbix API administrator user account.
 
 Options:
---host=URL                  Host to proceeed for.
--h, --help                  Print out this help.
--d, --debugging             Enables debug option.
+    --host=URL                  Host to proceeed for.
+    --zabbix-server=hostname    Zabbix server, overriding current config.
+    --zabbix-protocol=http|https Zabbix ppotocol, overriding current config.
+    -h, --help                  Print out this help.
+    -d, --debugging             Enables debug option.
 
 Example:
 \$sudo -u www-data /usr/bin/php report/zabbix/cli/zabbix_install.php/\n
@@ -98,6 +107,20 @@ $hostname = preg_replace('#https?://#', '', $CFG->wwwroot);
 // Execution.
 if (!empty($options['debugging'])) {
     mtrace("Building API instance.\n");
+}
+
+if (!empty($options['zabbix-server'])) {
+    $options['zabbixserver'] = $options['zabbix-server'];
+}
+
+if (!empty($options['zabbix-protocol'])) {
+    $options['zabbixprotocol'] = $options['zabbix-protocol'];
+}
+
+$config = get_config('report_zabbix');
+if (!empty($config->zabbixhostname)) {
+    $hostname = $config->zabbixhostname;
+    $options['hostname'] = $hostname;
 }
 
 $cli = \report_zabbix\api::instance($options);
