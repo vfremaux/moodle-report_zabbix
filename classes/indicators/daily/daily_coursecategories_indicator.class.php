@@ -88,7 +88,7 @@ class daily_coursecategories_indicator extends zabbix_indicator {
     public function acquire_submode($submode) {
         global $DB;
 
-        if(!isset($this->value)) {
+        if (!isset($this->value)) {
             $this->value = new Stdclass;
         }
 
